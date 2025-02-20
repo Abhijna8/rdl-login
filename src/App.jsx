@@ -1,108 +1,143 @@
-import { useState, useEffect } from "react";
-import * as React from 'react';
-import {
-  AppBar, Box, Toolbar, Typography, Button, IconButton, Menu as MuiMenu, MenuItem,
-  Grid, TextField, Card, Tooltip, Container, Dialog, DialogActions, DialogContent, DialogTitle
-} from "@mui/material";
-import MenuIcon from '@mui/icons-material/Menu';
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import React, { useState } from "react";
 
-function ButtonAppBar({ setUserType, setPage }) {
-  const [anchorEl, setAnchorEl] = useState(null);
+const accessories = [
+  { id: 1, name: "Smart Watch", price: 99, icon: "⌚" },
+  { id: 2, name: "Headphones", price: 79, icon: "🎧" },
+  { id: 3, name: "Sunglasses", price: 49, icon: "🕶️" },
+  { id: 4, name: "Backpack", price: 89, icon: "🎒" },
+  { id: 5, name: "Wireless Mouse", price: 29, icon: "🖱️" },
+];
 
-  const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = (type) => {
-    setUserType(type);
-    setPage("login");
-    setAnchorEl(null);
+const App = () => {
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [error, setError] = useState("");
+  const [cart, setCart] = useState([]);
+
+  // Handle Registration
+  const handleRegister = () => {
+    if (!name || !password) {
+      setError("Both fields are required!");
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const userExists = users.some((user) => user.name === name);
+
+    if (userExists) {
+      setError("User already exists! Try a different name.");
+      return;
+    }
+
+    const newUser = { name, password };
+    users.push(newUser);
+    localStorage.setItem("users", JSON.stringify(users));
+
+    alert("Registration successful! You can now log in.");
+    setIsRegistering(false);
+    setName("");
+    setPassword("");
+    setError("");
   };
 
-  return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton size="large" edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }} onClick={handleMenuClick}>
-            <MenuIcon />
-          </IconButton>
-          <MuiMenu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={() => handleMenuClose("Employee")}>Employee</MenuItem>
-            <MenuItem onClick={() => handleMenuClose("Customer")}>Customer</MenuItem>
-          </MuiMenu>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Hey
-          </Typography>
-          <IconButton color="inherit" onClick={() => setPage("cart")}>
-            <ShoppingCartIcon />
-          </IconButton>
-          <Button color="inherit" onClick={() => setPage("login")}>Login</Button>
-        </Toolbar>
-      </AppBar>
-    </Box>
-  );
-}
+  // Handle Login
+  const handleLogin = () => {
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const user = users.find((user) => user.name === name && user.password === password);
 
-function CartPage({ setPage }) {
-  const accessories = [
-    { id: 1, name: "Smartwatch", price: "₹16,500", icon: "⌚" },
-    { id: 2, name: "Wireless Earbuds", price: "₹8,200", icon: "🎧" },
-    { id: 3, name: "Gaming Mouse", price: "₹4,000", icon: "🖱️" },
-    { id: 4, name: "Mechanical Keyboard", price: "₹10,500", icon: "⌨️" },
-    { id: 5, name: "VR Headset", price: "₹25,000", icon: "🕶️" },
-    { id: 6, name: "Smartphone", price: "₹55,000", icon: "📱" },
-    { id: 7, name: "Tablet", price: "₹35,000", icon: "📟" },
-    { id: 8, name: "Portable Speaker", price: "₹7,500", icon: "🔊" }
-  ];
+    if (user) {
+      localStorage.setItem("loggedInUser", JSON.stringify(user));
+      setIsLoggedIn(true);
+      setError("");
+    } else {
+      setError("Invalid credentials! Please try again.");
+    }
+  };
+
+  // Logout function
+  const handleLogout = () => {
+    localStorage.removeItem("loggedInUser");
+    setIsLoggedIn(false);
+    setName("");
+    setPassword("");
+    setCart([]);
+  };
+
+  // Add item to cart
+  const addToCart = (item) => {
+    setCart([...cart, item]);
+  };
+
+  // Calculate total price
+  const totalPrice = cart.reduce((total, item) => total + item.price, 0);
 
   return (
-    <Container sx={{ textAlign: "center", mt: 5 }}>
-      <IconButton onClick={() => setPage("home")} sx={{ position: "absolute", left: 20, top: 20 }}>
-        <ArrowBackIcon />
-      </IconButton>
-      <Typography variant="h4">Shopping Cart</Typography>
-      <Grid container spacing={2} justifyContent="center" sx={{ mt: 3 }}>
-        {accessories.map(item => (
-          <Grid item key={item.id} sx={{ textAlign: "center" }}>
-            <Card sx={{ p: 3, width: 250, height: 150, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <Typography variant="h4">{item.icon}</Typography>
-              <Typography variant="h6">{item.name}</Typography>
-              <Typography variant="body1">{item.price}</Typography>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Container>
-  );
-}
+    <div className="container">
+      {!isLoggedIn ? (
+        <div className="auth-box">
+          <h2>{isRegistering ? "Register" : "Login"}</h2>
+          {error && <p className="error">{error}</p>}
 
-function App() {
-  const [userType, setUserType] = useState("Employee");
-  const [page, setPage] = useState("home");
+          <input
+            type="text"
+            placeholder="Enter Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Enter Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-  return (
-    <Box>
-      <ButtonAppBar setUserType={setUserType} setPage={setPage} />
-      {page === "cart" ? (
-        <CartPage setPage={setPage} />
-      ) : page === "login" ? (
-        <Container sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", backgroundColor: "#f6f4f4", p: 3 }}>
-          <ToastContainer position="top-right" autoClose={3000} />
-          <Card sx={{ p: 3, textAlign: "center", width: "50%", minHeight: "400px" }}>
-            <Typography variant="h5" gutterBottom>{userType} Login</Typography>
-            <TextField fullWidth margin="normal" label="First Name" />
-            <TextField fullWidth margin="normal" label="Last Name" />
-            <Button variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>Login</Button>
-          </Card>
-        </Container>
+          {isRegistering ? (
+            <button onClick={handleRegister}>Register</button>
+          ) : (
+            <button onClick={handleLogin}>Login</button>
+          )}
+
+          <p onClick={() => setIsRegistering(!isRegistering)}>
+            {isRegistering ? "Already have an account? Login" : "New user? Register here"}
+          </p>
+        </div>
       ) : (
-        <Typography variant="h4" align="center" sx={{ mt: 5 }}>Welcome to the Dashboard</Typography>
+        <div className="shopping-cart">
+          <h2>Welcome, {JSON.parse(localStorage.getItem("loggedInUser")).name}!</h2>
+          <h3>Available Accessories</h3>
+          <div className="items">
+            {accessories.map((item) => (
+              <div key={item.id} className="item">
+                <span className="icon">{item.icon}</span>
+                <p>{item.name}</p>
+                <p>${item.price}</p>
+                <button onClick={() => addToCart(item)}>Add to Cart</button>
+              </div>
+            ))}
+          </div>
+
+          <h3>Shopping Cart</h3>
+          <div className="cart">
+            {cart.length > 0 ? (
+              cart.map((item, index) => (
+                <p key={index}>
+                  {item.icon} {item.name} - ${item.price}
+                </p>
+              ))
+            ) : (
+              <p>Cart is empty</p>
+            )}
+          </div>
+          <h3>Total: ${totalPrice}</h3>
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
+          </button>
+        </div>
       )}
-    </Box>
+    </div>
   );
-}
+};
 
 export default App;
