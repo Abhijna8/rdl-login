@@ -1,187 +1,156 @@
-import React, { useState } from "react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
-
-const accessories = [
-  { id: 1, name: "Smart Watch", price: 99, icon: "⌚" },
-  { id: 2, name: "Headphones", price: 79, icon: "🎧" },
-  { id: 3, name: "Sunglasses", price: 49, icon: "🕶️" },
-  { id: 4, name: "Backpack", price: 89, icon: "🎒" },
-  { id: 5, name: "Wireless Mouse", price: 29, icon: "🖱️" },
-];
+import React, { useState, useEffect } from "react";
+import "./App.css";
 
 const App = () => {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [error, setError] = useState("");
-  const [cart, setCart] = useState([]);
-  const [showCharts, setShowCharts] = useState(false);
+  const [step, setStep] = useState(1);
+  const [visitor, setVisitor] = useState({
+    fullName: "",
+    companyName: "",
+    phone: "",
+    profilePhoto: null,
+    department: "",
+    purpose: "",
+    hostName: "",
+    duration: "",
+    idType: "",
+    idNumber: "",
+    vehicleType: "",
+    vehicleCategory: "",
+    vehicleName: "",
+    vehicleRegNumber: "",
+  });
 
-  const handleRegister = () => {
-    if (!name || !password) {
-      setError("Both fields are required!");
-      return;
+  const [submitted, setSubmitted] = useState(false);
+
+  // Load visitor details from local storage on component mount
+  useEffect(() => {
+    const savedVisitor = localStorage.getItem("visitorData");
+    if (savedVisitor) {
+      setVisitor(JSON.parse(savedVisitor));
+    }
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setVisitor((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    setVisitor((prev) => ({ ...prev, profilePhoto: URL.createObjectURL(file) }));
+  };
+
+  const handleNext = () => setStep((prev) => prev + 1);
+  const handleBack = () => setStep((prev) => prev - 1);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Simulate API request (mock API connectivity)
+    try {
+      const response = await fakeApiRequest(visitor);
+      console.log("API Response:", response);
+    } catch (error) {
+      console.error("API Error:", error);
     }
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    if (users.some((user) => user.name === name)) {
-      setError("User already exists! Try a different name.");
-      return;
-    }
-
-    users.push({ name, password });
-    localStorage.setItem("users", JSON.stringify(users));
-    alert("Registration successful! You can now log in.");
-    setIsRegistering(false);
-    setName("");
-    setPassword("");
-    setError("");
+    // Save visitor details to local storage
+    localStorage.setItem("visitorData", JSON.stringify(visitor));
+    setSubmitted(true);
+    setStep(6); // Navigate to confirmation screen
   };
 
-  const handleLogin = () => {
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    if (users.find((user) => user.name === name && user.password === password)) {
-      localStorage.setItem("loggedInUser", JSON.stringify({ name }));
-      setIsLoggedIn(true);
-      setError("");
-    } else {
-      setError("Invalid credentials! Please try again.");
-    }
+  // Mock API function to simulate API connectivity
+  const fakeApiRequest = (data) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ status: "success", message: "Visitor data received", data });
+      }, 1000);
+    });
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
-    setIsLoggedIn(false);
-    setName("");
-    setPassword("");
-    setCart([]);
-    setShowCharts(false);
-  };
-
-  const addToCart = (item) => {
-    setCart([...cart, item]);
-  };
-
-  const removeFromCart = (index) => {
-    setCart(cart.filter((_, i) => i !== index));
-  };
-
-  const totalPrice = cart.reduce((total, item) => total + item.price, 0);
-  const chartData = cart.map((item) => ({ name: item.name, price: item.price }));
-  const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#ff0000"];
 
   return (
     <div className="container">
-      {!isLoggedIn ? (
-        <div className="auth-box">
-          <h2>{isRegistering ? "Register" : "Login"}</h2>
-          {error && <p className="error">{error}</p>}
-          <input type="text" placeholder="Enter Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <input type="password" placeholder="Enter Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          {isRegistering ? <button onClick={handleRegister}>Register</button> : <button onClick={handleLogin}>Login</button>}
-          <p onClick={() => setIsRegistering(!isRegistering)}>{isRegistering ? "Already have an account? Login" : "New user? Register here"}</p>
+      <h1 className="title">Visitor Management System</h1>
+
+      {step === 1 && (
+        <div className="section">
+          <h2 className="section-title">Visitor Registration</h2>
+          <input className="input" type="text" name="fullName" placeholder="Full Name" onChange={handleChange} required />
+          <input className="input" type="text" name="companyName" placeholder="Company Name" onChange={handleChange} />
+          <input className="input" type="text" name="phone" placeholder="Phone Number" onChange={handleChange} required />
+          <input className="input" type="file" accept="image/*" onChange={handlePhotoUpload} />
+          <button className="button" onClick={handleNext}>Next</button>
         </div>
-      ) : (
-        <div className="shopping-cart">
-          <h2>Welcome, {JSON.parse(localStorage.getItem("loggedInUser")).name}!</h2>
-          <h3>Available Accessories</h3>
-          <div className="items">
-            {accessories.map((item) => (
-              <div key={item.id} className="item">
-                <span className="icon">{item.icon}</span>
-                <p>{item.name}</p>
-                <p>${item.price}</p>
-                <button onClick={() => addToCart(item)}>Add to Cart</button>
-              </div>
-            ))}
-          </div>
+      )}
 
-          <h3>Shopping Cart</h3>
-          <div className="cart">
-            {cart.length > 0 ? (
-              cart.map((item, index) => (
-                <div key={index} className="cart-item">
-                  <p>{item.icon} {item.name} - ${item.price}</p>
-                  <button onClick={() => removeFromCart(index)}>Remove</button>
-                </div>
-              ))
-            ) : (
-              <p>Cart is empty</p>
-            )}
-          </div>
-          <h3>Total: ${totalPrice}</h3>
+      {step === 2 && (
+        <div className="section">
+          <h2 className="section-title">Visit Details</h2>
+          <input className="input" type="text" name="department" placeholder="Department" onChange={handleChange} required />
+          <input className="input" type="text" name="purpose" placeholder="Purpose of Visit" onChange={handleChange} required />
+          <input className="input" type="text" name="hostName" placeholder="Host Name" onChange={handleChange} required />
+          <input className="input" type="text" name="duration" placeholder="Expected Duration" onChange={handleChange} required />
+          <button className="button" onClick={handleBack}>Back</button>
+          <button className="button" onClick={handleNext}>Next</button>
+        </div>
+      )}
 
-          <button onClick={() => setShowCharts(!showCharts)} className="chart-btn">
-            {showCharts ? "Hide Charts" : "Show Charts"}
-          </button>
+      {step === 3 && (
+        <div className="section">
+          <h2 className="section-title">Identity Verification</h2>
+          <select className="input" name="idType" onChange={handleChange} required>
+            <option value="">Select ID Type</option>
+            <option value="Aadhaar">Aadhaar</option>
+            <option value="Passport">Passport</option>
+            <option value="Driving License">Driving License</option>
+          </select>
+          <input className="input" type="text" name="idNumber" placeholder="ID Number" onChange={handleChange} required />
+          <button className="button" onClick={handleBack}>Back</button>
+          <button className="button" onClick={handleNext}>Next</button>
+        </div>
+      )}
 
-          {/* Show Charts Section */}
-          {showCharts && cart.length > 0 && (
-            <div className="charts">
-              <h3>Charts</h3>
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height={250}>
-                  <AreaChart data={chartData}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="price" stroke="#8884d8" fill="#8884d8" />
-                  </AreaChart>
-                </ResponsiveContainer>
+      {step === 4 && (
+        <div className="section">
+          <h2 className="section-title">Vehicle Information</h2>
+          <select className="input" name="vehicleType" onChange={handleChange}>
+            <option value="">Select Vehicle Type</option>
+            <option value="Private">Private</option>
+            <option value="Commercial">Commercial</option>
+          </select>
+          <select className="input" name="vehicleCategory" onChange={handleChange}>
+            <option value="">Select Category</option>
+            <option value="Two-wheeler">Two-wheeler</option>
+            <option value="Four-wheeler">Four-wheeler</option>
+          </select>
+          <input className="input" type="text" name="vehicleName" placeholder="Vehicle Name" onChange={handleChange} />
+          <input className="input" type="text" name="vehicleRegNumber" placeholder="Registration Number" onChange={handleChange} />
+          <button className="button" onClick={handleBack}>Back</button>
+          <button className="button" onClick={handleNext}>Next</button>
+        </div>
+      )}
 
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={chartData}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="price" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
+      {step === 5 && (
+        <div className="section">
+          <h2 className="section-title">Check-in Confirmation</h2>
+          <p>Please review your details before submitting.</p>
+          <button className="button" onClick={handleBack}>Back</button>
+          <button className="button" onClick={handleSubmit}>Submit</button>
+        </div>
+      )}
 
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={chartData}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="price" stroke="#ff7300" />
-                  </LineChart>
-                </ResponsiveContainer>
-
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie data={chartData} dataKey="price" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#ffc658">
-                      {chartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
-          <button onClick={handleLogout} className="logout-btn">Logout</button>
+      {step === 6 && submitted && (
+        <div className="section">
+          <h2 className="section-title">Visitor Entry Confirmed</h2>
+          {visitor.profilePhoto && <img src={visitor.profilePhoto} alt="Profile" className="profile-image" />}
+          <p><strong>Name:</strong> {visitor.fullName}</p>
+          <p><strong>Company:</strong> {visitor.companyName}</p>
+          <p><strong>Phone:</strong> {visitor.phone}</p>
+          <p><strong>Department:</strong> {visitor.department}</p>
+          <p><strong>Purpose:</strong> {visitor.purpose}</p>
+          <p><strong>Host:</strong> {visitor.hostName}</p>
+          <p><strong>Duration:</strong> {visitor.duration}</p>
         </div>
       )}
     </div>
